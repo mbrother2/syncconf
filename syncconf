@@ -514,7 +514,7 @@ _notify(){
 _show_help() {
   cat <<EOF
 USAGE:
-   bash $0 command [options]
+   syncconf command [options]
 
 COMMANDS:
      install    Install watchman
@@ -577,7 +577,7 @@ EOF
 
 # Main function
 _create_default_conf
-printf "$(date "+[ %d/%m/%Y %H:%M:%S ]") ${GREEN}[INFO]${NOCOLOR} Run command: $0 ${ALL_ARGS}\n" >> ${LOG_FILE}
+printf "$(date "+[ %d/%m/%Y %H:%M:%S ]") ${GREEN}[INFO]${NOCOLOR} Run command: syncconf ${ALL_ARGS}\n" >> ${LOG_FILE}
 if [ -z "$1" ]; then
   _show_help
   exit 0
