@@ -286,9 +286,11 @@ _update(){
   _download_bash_file
 
   WATCHMAN_VERSION_CURRENT=$(watchman -v | cut -d'.' -f1)
-  WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_DEFAULT//./}
+  WATCHMAN_VERSION_CURRENT=$((WATCHMAN_VERSION_CURRENT+1))
+  WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_DEFAULT//.00/}
+  WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_UPDATE//./}
   _show_log -d -y " [WARNING]" -w " We will update watchman version from" \
-    -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}."
+    -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}"
   read -rp "Do you want to update(y/n)? " UPDATE_WATCHMAN
 
   if [[ "${UPDATE_WATCHMAN}" == "y" ]] || [[ "${UPDATE_WATCHMAN}" == "Y" ]]; then
