@@ -1,10 +1,8 @@
 #!/bin/bash
-BASH_REALPATH=$(realpath "$0")
 ALL_ARGS="$@"
 List_OS=("CentOS" "Debian")
 List_NOTIFY=("email")
 INSTALL_DIR="/root/syncconf_install"
-WATCHMAN_VERSION_DEFAULT="v2021.11.29.00"
 SYNCONF_DIR="/usr/local/syncconf"
 BIN_DIR="${SYNCONF_DIR}/bin"
 CONFIG_DIR="${SYNCONF_DIR}/conf"
@@ -135,6 +133,8 @@ _get_input() {
     _install_package "$i"
   done
 
+  WATCHMAN_VERSION_DEFAULT=$(curl -s ${GITHUB_LINK}/watchman/default.conf | cut -d'=' -f2)
+
   if [ -z "${WATCHMAN_VERSION}" ]; then
     WATCHMAN_VERSION="${WATCHMAN_VERSION_DEFAULT}"
     SYNCONF_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
@@ -169,6 +169,66 @@ _get_input() {
   SUM_SERVER=$(echo "${LIST_SERVER}" | wc -l)
 }
 
+_download_bash_file(){
+  echo ""
+  _show_log -d -g " [INFO]" -w " Download bash file from Github"
+  curl -L -o "${BIN_DIR}/syncconf" "${GITHUB_LINK}/syncconf"
+  curl -L -o "${BIN_DIR}/sync.bash" "${GITHUB_LINK}/sync.bash"
+  chmod 755 "${BIN_DIR}/syncconf" "${BIN_DIR}/sync.bash"
+  rm -f /usr/local/sbin/syncconf
+  ln -s ${BIN_DIR}/syncconf /usr/local/sbin/syncconf
+}
+
+_install_watchman(){
+  echo ""
+  _show_log -d -g " [INFO]" -w " Download watchman from Github"
+  systemctl stop watchman >/dev/null 2>&1
+  if [[ "${INSTALL_CM}" == "yum" ]]; then
+    curl -L -o "${BIN_DIR}/watchman" "${GITHUB_LINK}/watchman/watchman-CentOS"
+  else
+    mkdir ${INSTALL_DIR}
+    cd ${INSTALL_DIR} || _exit 3 "Cannot create directory ${INSTALL_DIR}. Exit"
+
+    sleep 1
+    curl -L -o "${SYNCONF_FILE}" "${GITHUB_LINK}/watchman/${SYNCONF_FILE}"
+
+    if [ ! -f "${SYNCONF_FILE}" ]; then
+      _show_log -d -y " [WARNING]" -w " Cannot download file ${SYNCONF_FILE}"
+      _show_log -d -g " [INFO]" -w " Install default version: ${WATCHMAN_VERSION_DEFAULT}"
+      echo ""
+      echo "Install after 3 seconds, press Ctrl + C to cancel"
+      for i in 3 2 1; do
+        echo -n $i..
+        sleep 1
+      done
+      SYNCONF_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
+      curl -L -o "${SYNCONF_FILE}" "${GITHUB_LINK}/watchman/${SYNCONF_FILE}"
+    fi
+
+    unzip "${SYNCONF_FILE}" || _exit 3 "Cannot extract file ${SYNCONF_FILE}. Exit"
+
+    echo ""
+    _show_log -d -g " [INFO]" -w " Config watchman"
+    sleep 1
+    cd "watchman-${WATCHMAN_VERSION}-linux" || _exit 4 "Cannot change dir to watchman-${WATCHMAN_VERSION}-linux. Exit"
+    mv bin/* ${BIN_DIR}/
+    mv lib/* /usr/local/lib/
+
+    # Remove install dir
+    cd /root || _exit 4 "Cannot change dir to /root"
+    rm -rf ${INSTALL_DIR}
+  fi
+
+  chmod 755 "${BIN_DIR}/watchman"
+
+  mkdir -p /usr/local/var/run/watchman
+  chmod 2777 /usr/local/var/run/watchman
+  ${BIN_DIR}/watchman -v >/dev/null || _exit 4 "Cannot detect watchman version. Exit"
+
+  rm -f /usr/local/sbin/watchman
+  ln -s ${BIN_DIR}/watchman /usr/local/sbin/watchman
+}
+
 _install() {
   if [ -f "${BIN_DIR}/watchman" ]; then
     _show_log -d -y " [WARNING]" -w " File ${BIN_DIR}/watchman exist."
@@ -176,57 +236,15 @@ _install() {
   fi
 
   if [[ "${INSTALL_WATCHMAN}" == "y" ]] || [[ "${INSTALL_WATCHMAN}" == "Y" ]]; then
-    echo ""
-    systemctl stop watchman >/dev/null 2>&1
-    _show_log -d -g " [INFO]" -w " Download watchman from Github"
-    curl -L -o "${BIN_DIR}/sync.bash" "${GITHUB_LINK}/sync.bash"
-
-    if [[ "${INSTALL_CM}" == "yum" ]]; then
-      curl -L -o "${BIN_DIR}/watchman" "${GITHUB_LINK}/watchman/watchman-CentOS"
-    else
-      mkdir ${INSTALL_DIR}
-      cd ${INSTALL_DIR} || _exit 3 "Cannot create directory ${INSTALL_DIR}. Exit"
-
-      sleep 1
-      curl -L -o "${SYNCONF_FILE}" "${GITHUB_LINK}/watchman/${SYNCONF_FILE}"
-
-      if [ ! -f "${SYNCONF_FILE}" ]; then
-        _show_log -d -y " [WARNING]" -w " Cannot download file ${SYNCONF_FILE}"
-        _show_log -d -g " [INFO]" -w " Install default version: ${WATCHMAN_VERSION_DEFAULT}"
-        echo ""
-        echo "Install after 3 seconds, press Ctrl + C to cancel"
-        for i in 3 2 1; do
-          echo -n $i..
-          sleep 1
-        done
-        SYNCONF_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
-        curl -L -o "${SYNCONF_FILE}" "${GITHUB_LINK}/watchman/${SYNCONF_FILE}"
-      fi
-
-      unzip "${SYNCONF_FILE}" || _exit 3 "Cannot extract file ${SYNCONF_FILE}. Exit"
-
-      echo ""
-      _show_log -d -g " [INFO]" -w " Config watchman"
-      sleep 1
-      cd "watchman-${WATCHMAN_VERSION}-linux" || _exit 4 "Cannot change dir to watchman-${WATCHMAN_VERSION}-linux. Exit"
-      mv bin/* ${BIN_DIR}/
-      mv lib/* /usr/local/lib/
-
-      # Remove install dir
-      cd /root || _exit 4 "Cannot change dir to /root"
-      rm -rf ${INSTALL_DIR}
-    fi
-
-    cp "${BASH_REALPATH}" ${BIN_DIR}/ 2>/dev/null
-    chmod 755 "${BIN_DIR}/watchman" "${BIN_DIR}/syncconf" "${BIN_DIR}/sync.bash"
+    _download_bash_file
+    _install_watchman
   fi
 
   mkdir -p /usr/local/var/run/watchman
   chmod 2777 /usr/local/var/run/watchman
   ${BIN_DIR}/watchman -v >/dev/null || _exit 4 "Cannot detect watchman version. Exit"
 
-  rm -f /usr/local/sbin/{syncconf,watchman}
-  ln -s ${BIN_DIR}/syncconf /usr/local/sbin/syncconf
+  rm -f /usr/local/sbin/watchman
   ln -s ${BIN_DIR}/watchman /usr/local/sbin/watchman
 
   echo ""
@@ -264,11 +282,17 @@ EOF
   _show_log -d -g " [INFO]" -w " Install watchman successfully"
 }
 
+_update(){
+  _download_bash_file
+  _install_watchman
+  systemctl restart watchman
+}
+
 _uninstall() {
   ${BIN_DIR}/watchman watch-del-all >/dev/null
   systemctl stop watchman
   rm -rf ${SYNCONF_DIR}
-  rm -f /lib/systemd/system/watchman.service /usr/local/sbin/{watchman_bash.bash,watchman}
+  rm -f /lib/systemd/system/watchman.service /usr/local/sbin/{syncconf,watchman}
   systemctl daemon-reload
   for i in $(pgrep "watchman"); do
     kill -9 "$i"
@@ -518,15 +542,16 @@ USAGE:
    syncconf command [options]
 
 COMMANDS:
-     install    Install watchman
-     notify     Add/remove notify
+     install    Install syncconf
      cluster    Add/remove server to cluster
+     notify     Add/remove notify
+     uninstall  Remove syncconf
+     update     Update syncconf
      watch      Add/remove watch directory
-     uninstall  Remove watchman
      help, h    Show help
 
 OPTIONS:
-    For install:
+    For install & update:
      -v, --version [STRING]       Version of watchman will be installed. Default: ${WATCHMAN_VERSION_DEFAULT}    
 
     For watch:
@@ -588,7 +613,7 @@ else
     _show_help
     exit 0
     ;;
-  install | notify | cluster | watch | uninstall)
+  install | notify | cluster | watch | uninstall | update)
     COMMAND=$1
     ;;
   *)
@@ -701,4 +726,5 @@ notify) _notify ;;
 watch) _watch ;;
 cluster) _cluster ;;
 uninstall) _uninstall ;;
+update) _update ;;
 esac
