@@ -284,8 +284,18 @@ EOF
 
 _update(){
   _download_bash_file
-  _install_watchman
-  systemctl restart watchman
+
+  WATCHMAN_VERSION_CURRENT=$(watchman -v | cut -d'.' -f1)
+  WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_DEFAULT/.//}
+  _show_log -d -y " [WARNING]" -w " We will update watchman version from v${WATCHMAN_VERSION_CURRENT} to ${WATCHMAN_VERSION_UPDATE}."
+  read -rp "Do you want to update(y/n)? " INSTALL_WATCHMAN
+
+  if [[ "${INSTALL_WATCHMAN}" == "y" ]] || [[ "${INSTALL_WATCHMAN}" == "Y" ]]; then
+    _install_watchman
+    systemctl restart watchman
+  fi
+
+  _show_log -d -g " [INFO]" -w " Update syncconf successfully"
 }
 
 _uninstall() {
