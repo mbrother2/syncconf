@@ -287,10 +287,11 @@ _update(){
 
   WATCHMAN_VERSION_CURRENT=$(watchman -v | cut -d'.' -f1)
   WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_DEFAULT//./}
-  _show_log -d -y " [WARNING]" -w " We will update watchman version from v${WATCHMAN_VERSION_CURRENT} to ${WATCHMAN_VERSION_UPDATE}."
-  read -rp "Do you want to update(y/n)? " INSTALL_WATCHMAN
+  _show_log -d -y " [WARNING]" -w " We will update watchman version from" \
+    -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}."
+  read -rp "Do you want to update(y/n)? " UPDATE_WATCHMAN
 
-  if [[ "${INSTALL_WATCHMAN}" == "y" ]] || [[ "${INSTALL_WATCHMAN}" == "Y" ]]; then
+  if [[ "${UPDATE_WATCHMAN}" == "y" ]] || [[ "${UPDATE_WATCHMAN}" == "Y" ]]; then
     _install_watchman
     systemctl restart watchman
   fi
