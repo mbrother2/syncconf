@@ -13,6 +13,7 @@ CLUSTER_FILE="${CONFIG_DIR}/cluster.conf"
 NOTIFY_FILE="${CONFIG_DIR}/notify.conf"
 LOG_FILE="${SYNCONF_DIR}/log/syncconf.log"
 BASH_DEFAULT="${BIN_DIR}/sync.bash"
+SSH_TIMEOUT=3
 GET_FILE_OK="0"
 INSTALL_WATCHMAN="y"
 GITHUB_LINK="https://raw.githubusercontent.com/mbrother2/syncconf/main"
@@ -369,7 +370,7 @@ _watch() {
 
     for SINGLE_SERVER in ${LIST_SERVER}; do
       SSH_PORT=$(jq -r ".cluster[] | select(.ip == \"${SINGLE_SERVER}\") | .port" ${CLUSTER_FILE})
-      ssh -o ConnectTimeout=1 -p "${SSH_PORT}" -q root@"${SINGLE_SERVER}" exit || {
+      ssh -o ConnectTimeout=${SSH_TIMEOUT} -p "${SSH_PORT}" -q root@"${SINGLE_SERVER}" exit || {
         _show_log -d -r " [ERROR]" -w " Cannot connect IP ${SINGLE_SERVER} through port ${SSH_PORT}. Skip"
         continue
       }
@@ -416,7 +417,7 @@ _cluster() {
       fi
 
       SSH_PORT=$(jq -r ".cluster[] | select(.ip == \"${SINGLE_SERVER}\") | .port" ${CLUSTER_FILE})
-      ssh -o ConnectTimeout=1 -p "${SSH_PORT}" -q root@"${SINGLE_SERVER}" exit \
+      ssh -o ConnectTimeout=${SSH_TIMEOUT} -p "${SSH_PORT}" -q root@"${SINGLE_SERVER}" exit \
         && SINGLE_SERVER_STATUS="OK" || SINGLE_SERVER_STATUS="Fail"
 
       SINGLE_RESULT=$(cat <<EOF
@@ -447,7 +448,7 @@ EOF
         echo "${NEW_WATCH}" >${CLUSTER_FILE}
         _show_log -d -g " [INFO]" -w " ${IP_ADDRESS} has been removed from cluster"
       else
-        ssh -o ConnectTimeout=1 -p ${SSH_PORT} -q root@"${IP_ADDRESS}" exit || {
+        ssh -o ConnectTimeout=${SSH_TIMEOUT} -p ${SSH_PORT} -q root@"${IP_ADDRESS}" exit || {
           _exit 3 "Cannot connect IP ${SINGLE_SERVER} through port ${SSH_PORT}"
         }
 
