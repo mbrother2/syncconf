@@ -137,9 +137,9 @@ _get_input() {
 
   if [ -z "${WATCHMAN_VERSION}" ]; then
     WATCHMAN_VERSION="${WATCHMAN_VERSION_DEFAULT}"
-    SYNCONF_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
+    WATCHMAN_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
   else
-    SYNCONF_FILE="watchman-${WATCHMAN_VERSION}-linux.zip"
+    WATCHMAN_FILE="watchman-${WATCHMAN_VERSION}-linux.zip"
   fi
 
   CHECK_CONFIG=$(jq -r '.watch[].delete_file' ${WATCH_FILE} 2>/dev/null | head -1)
@@ -190,10 +190,10 @@ _install_watchman(){
     cd ${INSTALL_DIR} || _exit 3 "Cannot create directory ${INSTALL_DIR}. Exit"
 
     sleep 1
-    curl -L -o "${SYNCONF_FILE}" "${GITHUB_LINK}/watchman/${SYNCONF_FILE}"
+    curl -L -o "${WATCHMAN_FILE}" "${GITHUB_LINK}/watchman/${WATCHMAN_FILE}"
 
-    if [ ! -f "${SYNCONF_FILE}" ]; then
-      _show_log -d -y " [WARNING]" -w " Cannot download file ${SYNCONF_FILE}"
+    if [ ! -f "${WATCHMAN_FILE}" ]; then
+      _show_log -d -y " [WARNING]" -w " Cannot download file ${WATCHMAN_FILE}"
       _show_log -d -g " [INFO]" -w " Install default version: ${WATCHMAN_VERSION_DEFAULT}"
       echo ""
       echo "Install after 3 seconds, press Ctrl + C to cancel"
@@ -201,11 +201,11 @@ _install_watchman(){
         echo -n $i..
         sleep 1
       done
-      SYNCONF_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
-      curl -L -o "${SYNCONF_FILE}" "${GITHUB_LINK}/watchman/${SYNCONF_FILE}"
+      WATCHMAN_FILE="watchman-${WATCHMAN_VERSION_DEFAULT}-linux.zip"
+      curl -L -o "${WATCHMAN_FILE}" "${GITHUB_LINK}/watchman/${WATCHMAN_FILE}"
     fi
 
-    unzip "${SYNCONF_FILE}" || _exit 3 "Cannot extract file ${SYNCONF_FILE}. Exit"
+    unzip "${WATCHMAN_FILE}" || _exit 3 "Cannot extract file ${WATCHMAN_FILE}. Exit"
 
     echo ""
     _show_log -d -g " [INFO]" -w " Config watchman"
@@ -215,7 +215,6 @@ _install_watchman(){
     mv lib/* /usr/local/lib/
 
     # Remove install dir
-    cd /root || _exit 4 "Cannot change dir to /root"
     rm -rf ${INSTALL_DIR}
   fi
 
@@ -232,7 +231,7 @@ _install_watchman(){
 _install() {
   if [ -f "${BIN_DIR}/watchman" ]; then
     _show_log -d -y " [WARNING]" -w " File ${BIN_DIR}/watchman exist."
-    read -rp "Do you want to reinstall(y/n)? " INSTALL_WATCHMAN
+    read -rp "Do you want to reinstall (y/n)? " INSTALL_WATCHMAN
   fi
 
   if [[ "${INSTALL_WATCHMAN}" == "y" ]] || [[ "${INSTALL_WATCHMAN}" == "Y" ]]; then
@@ -285,22 +284,24 @@ EOF
 _update(){
   _download_bash_file
 
-  WATCHMAN_VERSION_CURRENT=$(watchman -v | cut -d'.' -f1)
-  WATCHMAN_VERSION_CURRENT=$((WATCHMAN_VERSION_CURRENT+1))
-  WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_DEFAULT//.00/}
-  WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_UPDATE//./}
+  if [ "${INSTALL_CM}" != "yum" ]; then
+    WATCHMAN_VERSION_CURRENT=$(watchman -v | cut -d'.' -f1)
+    WATCHMAN_VERSION_CURRENT=$((WATCHMAN_VERSION_CURRENT+1))
+    WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION//.00/}
+    WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_UPDATE//./}
+  
+    if [ "v${WATCHMAN_VERSION_CURRENT}" != "${WATCHMAN_VERSION_UPDATE}" ]; then
+      _show_log -d -y " [WARNING]" -w " We will update watchman version from" \
+        -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}"
+      read -rp "Do you want to update (y/n)? " UPDATE_WATCHMAN
 
-  if [ "v${WATCHMAN_VERSION_CURRENT}" != "${WATCHMAN_VERSION_UPDATE}" ]; then
-    _show_log -d -y " [WARNING]" -w " We will update watchman version from" \
-      -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}"
-    read -rp "Do you want to update(y/n)? " UPDATE_WATCHMAN
-
-    if [[ "${UPDATE_WATCHMAN}" == "y" ]] || [[ "${UPDATE_WATCHMAN}" == "Y" ]]; then
-      _install_watchman
-      systemctl restart watchman
+      if [[ "${UPDATE_WATCHMAN}" == "y" ]] || [[ "${UPDATE_WATCHMAN}" == "Y" ]]; then
+        _install_watchman
+        systemctl restart watchman
+      fi
+    else
+      _show_log -d -g " [INFO]" -w " Watchman version is latest"
     fi
-  else
-    _show_log -d -g " [INFO]" -w " Watchman version is latest"
   fi
 
   _show_log -d -g " [INFO]" -w " Update syncconf successfully"
