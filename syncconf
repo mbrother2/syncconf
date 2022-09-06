@@ -291,7 +291,7 @@ _update(){
     WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_UPDATE//./}
   
     if [ "v${WATCHMAN_VERSION_CURRENT}" != "${WATCHMAN_VERSION_UPDATE}" ]; then
-      _show_log -d -y " [WARNING]" -w " We will update watchman version from" \
+      _show_log -d -y " [WARNING]" -w " We will change watchman version from" \
         -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}"
       read -rp "Do you want to update (y/n)? " UPDATE_WATCHMAN
 
@@ -571,7 +571,8 @@ COMMANDS:
 
 OPTIONS:
     For install & update:
-     -v, --version [STRING]       Version of watchman will be installed. Default: ${WATCHMAN_VERSION_DEFAULT}    
+     -v, --version [STRING]       Version of watchman will be installed. Example:
+                                  v2022.08.22.00
 
     For watch:
      -b, --bash [FILE_NAME]       Bash file run when trigger change. Default: ${BASH_DEFAULT}
