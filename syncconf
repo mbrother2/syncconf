@@ -3,13 +3,13 @@ ALL_ARGS="$@"
 List_OS=("CentOS" "Debian")
 List_NOTIFY=("email")
 INSTALL_DIR="/root/syncconf_install"
-SYNCONF_DIR="/usr/local/syncconf"
-BIN_DIR="${SYNCONF_DIR}/bin"
-CONFIG_DIR="${SYNCONF_DIR}/conf"
+SYNCCONF_DIR="/usr/local/syncconf"
+BIN_DIR="${SYNCCONF_DIR}/bin"
+CONFIG_DIR="${SYNCCONF_DIR}/conf"
 WATCH_FILE="${CONFIG_DIR}/watch.conf"
 CLUSTER_FILE="${CONFIG_DIR}/cluster.conf"
 NOTIFY_FILE="${CONFIG_DIR}/notify.conf"
-LOG_FILE="${SYNCONF_DIR}/log/syncconf.log"
+LOG_FILE="${SYNCCONF_DIR}/log/syncconf.log"
 BASH_DEFAULT="${BIN_DIR}/sync.bash"
 SSH_TIMEOUT=3
 GET_FILE_OK="0"
@@ -58,7 +58,7 @@ _install_package(){
 }
 
 _create_default_conf() {
-  mkdir -p ${SYNCONF_DIR}/{conf,log,bin}
+  mkdir -p ${SYNCCONF_DIR}/{conf,log,bin}
 
   if [[ ! -f "${CLUSTER_FILE}" ]] || [[ ! -s "${CLUSTER_FILE}" ]]; then
     echo '{"cluster":[]}' >${CLUSTER_FILE}
@@ -172,9 +172,15 @@ _get_input() {
 _download_bash_file(){
   echo ""
   _show_log -d -g " [INFO]" -w " Download bash file from Github"
-  curl -L -o "${BIN_DIR}/syncconf" "${GITHUB_LINK}/syncconf"
-  curl -L -o "${BIN_DIR}/sync.bash" "${GITHUB_LINK}/sync.bash"
-  chmod 755 "${BIN_DIR}/syncconf" "${BIN_DIR}/sync.bash"
+
+  SYNCCONF_FILE="${BIN_DIR}/syncconf"
+  if [ "${COMMAND}" == "update" ]; then
+    SYNCCONF_FILE="${BIN_DIR}/syncconf.update"
+  fi
+  
+  curl -L -o "${SYNCCONF_FILE}" "${GITHUB_LINK}/syncconf"
+  curl -L -o "${BASH_DEFAULT}" "${GITHUB_LINK}/sync.bash"
+  chmod 755 "${SYNCCONF_FILE}" "${BIN_DIR}/sync.bash"
   rm -f /usr/local/sbin/syncconf
   ln -s ${BIN_DIR}/syncconf /usr/local/sbin/syncconf
 }
@@ -304,13 +310,14 @@ _update(){
     fi
   fi
 
+  mv ${SYNCCONF_FILE} ${BIN_DIR}/syncconf
   _show_log -d -g " [INFO]" -w " Update syncconf successfully"
 }
 
 _uninstall() {
   ${BIN_DIR}/watchman watch-del-all >/dev/null
   systemctl stop watchman
-  rm -rf ${SYNCONF_DIR}
+  rm -rf ${SYNCCONF_DIR}
   rm -f /lib/systemd/system/watchman.service /usr/local/sbin/{syncconf,watchman}
   systemctl daemon-reload
   for i in $(pgrep "watchman"); do
