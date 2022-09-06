@@ -290,7 +290,7 @@ _update(){
   WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_DEFAULT//.00/}
   WATCHMAN_VERSION_UPDATE=${WATCHMAN_VERSION_UPDATE//./}
 
-  if [ "${WATCHMAN_VERSION_CURRENT}" != "${WATCHMAN_VERSION_UPDATE}" ]; then
+  if [ "v${WATCHMAN_VERSION_CURRENT}" != "${WATCHMAN_VERSION_UPDATE}" ]; then
     _show_log -d -y " [WARNING]" -w " We will update watchman version from" \
       -r " v${WATCHMAN_VERSION_CURRENT}" -w " to" -g " ${WATCHMAN_VERSION_UPDATE}"
     read -rp "Do you want to update(y/n)? " UPDATE_WATCHMAN
