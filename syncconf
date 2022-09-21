@@ -446,7 +446,7 @@ _watch() {
         continue
       fi
 
-      ssh root@"${SINGLE_SERVER}" -p "${SSH_PORT}" "${BIN_DIR}/watchman_bash.bash ${ALL_ARGS}" >/dev/null
+      ssh root@"${SINGLE_SERVER}" -p "${SSH_PORT}" "${BIN_DIR}/syncconf ${ALL_ARGS}" >/dev/null
       _show_log -d -g " [INFO]" -w " Sync config to ${SINGLE_SERVER} successfully"
     done
   fi
